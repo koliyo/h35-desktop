@@ -28,6 +28,28 @@ A **Live reload** toggle next to Reload pauses automatic page refresh (`sessionS
 
 Pages can post `pick-folder` over `window.ipc`. The host opens a native folder dialog and dispatches `CustomEvent("h35-pick-folder")`.
 
+## Development
+
+```sh
+cargo fmt --all -- --check
+cargo test
+```
+
+Replay those jobs with `uv run --no-dev h35-ops ci`. To publish a GitHub
+release from `origin/main`, run `uv run h35-ops promote tag vX.Y.Z` (or
+`--from BRANCH`). That waits for hosted CI on the target SHA, then pushes
+the tag. `uv run h35-ops promote tag dev` force-moves the rolling `dev`
+prerelease tag. A later `git pull` then reports
+`! [rejected] dev -> dev (would clobber existing tag)` unless this repo
+force-updates that tag on fetch:
+
+```sh
+git config --local --add remote.origin.fetch '+refs/tags/dev:refs/tags/dev'
+```
+
+Do not force-fetch all tags; `v*` releases stay immutable. To replace local
+`dev` once without changing config, run `git fetch origin tag dev --force`.
+
 ## Dependencies
 
 tao, wry, muda, rfd. No language parsers and no product crates.
