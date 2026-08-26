@@ -26,12 +26,12 @@ dependencies = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "h35-ops", editable = "tools/h35-ops" }]
+requires-dist = [{ name = "h35-ops", editable = "h35-ops" }]
 
 [[package]]
 name = "h35-ops"
 version = "0.1.0"
-source = { editable = "tools/h35-ops" }
+source = { editable = "h35-ops" }
 
 [package.dev-dependencies]
 dev = [

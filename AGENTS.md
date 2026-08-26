@@ -4,7 +4,7 @@
 
 - `cargo fmt --all -- --check`
 - `cargo test`
-- When `tools/h35-ops` is present: `uv run h35-ops ci`.
+- When `h35-ops` is present: `uv run h35-ops ci`.
 
 ## Rolling `dev` tag
 

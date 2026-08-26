@@ -9,7 +9,7 @@ dependencies = ["h35-ops"]
 package = false
 
 [tool.uv.workspace]
-members = ["tools/h35-ops"]
+members = ["h35-ops"]
 
 [tool.uv.sources]
 h35-ops = { workspace = true }

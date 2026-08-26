@@ -41,4 +41,4 @@ jobs:
         run: cargo test
       - uses: astral-sh/setup-uv@v6
       - name: Test h35-ops
-        run: uv run --directory tools/h35-ops --group dev pytest
+        run: uv run --directory h35-ops --group dev pytest
