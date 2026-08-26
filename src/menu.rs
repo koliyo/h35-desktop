@@ -11,6 +11,7 @@ use tao::window::Window;
 use crate::ShellEvent;
 
 pub const QUIT_ID: &str = "app.quit";
+pub const CHECK_UPDATES_ID: &str = "app.check-updates";
 pub const NEW_WINDOW_ID: &str = "file.new-window";
 pub const CLOSE_WINDOW_ID: &str = "file.close-window";
 pub const FIND_ID: &str = "edit.find";
@@ -40,6 +41,8 @@ pub struct MenuConfig<'a> {
     pub live_reload_on: bool,
     pub devtools: bool,
     pub picker: bool,
+    pub check_updates: bool,
+    pub check_updates_enabled: bool,
 }
 
 pub struct NativeMenu {
@@ -59,31 +62,60 @@ impl NativeMenu {
         #[cfg(target_os = "macos")]
         {
             let app = Submenu::new(config.app_name, true);
-            app.append_items(&[
-                &PredefinedMenuItem::about(
-                    Some(&format!("About {}", config.app_name)),
-                    Some(AboutMetadata {
-                        name: Some(config.app_name.into()),
-                        version: config.version.map(str::to_owned),
-                        copyright: Some("Built with Rust, tao, and wry".into()),
-                        ..Default::default()
-                    }),
-                ),
-                &PredefinedMenuItem::separator(),
-                &PredefinedMenuItem::services(None),
-                &PredefinedMenuItem::separator(),
-                &PredefinedMenuItem::hide(Some(&format!("Hide {}", config.app_name))),
-                &PredefinedMenuItem::hide_others(None),
-                &PredefinedMenuItem::show_all(None),
-                &PredefinedMenuItem::separator(),
-                &MenuItem::with_id(
-                    QUIT_ID,
-                    format!("Quit {}", config.app_name),
-                    true,
-                    Some(Accelerator::new(Some(CMD_OR_CTRL), Code::KeyQ)),
-                ),
-            ])
-            .map_err(menu_error)?;
+            let about = PredefinedMenuItem::about(
+                Some(&format!("About {}", config.app_name)),
+                Some(AboutMetadata {
+                    name: Some(config.app_name.into()),
+                    version: config.version.map(str::to_owned),
+                    copyright: Some("Built with Rust, tao, and wry".into()),
+                    ..Default::default()
+                }),
+            );
+            if config.check_updates {
+                let check_updates = MenuItem::with_id(
+                    CHECK_UPDATES_ID,
+                    "Check for Updates…",
+                    config.check_updates_enabled,
+                    None,
+                );
+                app.append_items(&[
+                    &about,
+                    &PredefinedMenuItem::separator(),
+                    &check_updates,
+                    &PredefinedMenuItem::separator(),
+                    &PredefinedMenuItem::services(None),
+                    &PredefinedMenuItem::separator(),
+                    &PredefinedMenuItem::hide(Some(&format!("Hide {}", config.app_name))),
+                    &PredefinedMenuItem::hide_others(None),
+                    &PredefinedMenuItem::show_all(None),
+                    &PredefinedMenuItem::separator(),
+                    &MenuItem::with_id(
+                        QUIT_ID,
+                        format!("Quit {}", config.app_name),
+                        true,
+                        Some(Accelerator::new(Some(CMD_OR_CTRL), Code::KeyQ)),
+                    ),
+                ])
+                .map_err(menu_error)?;
+            } else {
+                app.append_items(&[
+                    &about,
+                    &PredefinedMenuItem::separator(),
+                    &PredefinedMenuItem::services(None),
+                    &PredefinedMenuItem::separator(),
+                    &PredefinedMenuItem::hide(Some(&format!("Hide {}", config.app_name))),
+                    &PredefinedMenuItem::hide_others(None),
+                    &PredefinedMenuItem::show_all(None),
+                    &PredefinedMenuItem::separator(),
+                    &MenuItem::with_id(
+                        QUIT_ID,
+                        format!("Quit {}", config.app_name),
+                        true,
+                        Some(Accelerator::new(Some(CMD_OR_CTRL), Code::KeyQ)),
+                    ),
+                ])
+                .map_err(menu_error)?;
+            }
             menu.append(&app).map_err(menu_error)?;
         }
 
@@ -359,6 +391,8 @@ mod tests {
             live_reload_on: true,
             devtools,
             picker: false,
+            check_updates: false,
+            check_updates_enabled: false,
         }
     }
 
@@ -414,5 +448,10 @@ mod tests {
         assert_eq!(LIVE_RELOAD_ID, "view.live-reload");
         assert!(view_action_ids(&config(true, true, false, false)).contains(&LIVE_RELOAD_ID));
         assert!(!view_action_ids(&config(true, false, false, false)).contains(&LIVE_RELOAD_ID));
+    }
+
+    #[test]
+    fn check_for_updates_id_is_stable() {
+        assert_eq!(CHECK_UPDATES_ID, "app.check-updates");
     }
 }

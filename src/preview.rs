@@ -43,6 +43,7 @@ pub struct HostOptions {
     pub extra_initialization_script: Option<String>,
     pub on_ipc: Option<IpcHandler>,
     pub on_navigate: Option<NavigateHandler>,
+    pub check_updates: bool,
 }
 
 impl Default for HostOptions {
@@ -67,6 +68,7 @@ impl Default for HostOptions {
             extra_initialization_script: None,
             on_ipc: None,
             on_navigate: None,
+            check_updates: false,
         }
     }
 }
@@ -214,6 +216,12 @@ pub fn preview(options: HostOptions) -> Result<()> {
         cfg!(target_os = "macos"),
     )?;
     let pick_proxy = proxy.clone();
+    let bundled = std::env::current_exe()
+        .ok()
+        .is_some_and(|exe| crate::bundle::running_inside_app_bundle(&exe));
+    let updater = crate::update::start(
+        options.check_updates && crate::update::updater_allowed(bundled, true),
+    );
     let menu = menu::NativeMenu::install(
         proxy,
         MenuConfig {
@@ -227,6 +235,8 @@ pub fn preview(options: HostOptions) -> Result<()> {
             live_reload_on: options.live_reload,
             devtools: options.devtools,
             picker: options.picker,
+            check_updates: options.check_updates,
+            check_updates_enabled: updater.is_some(),
         },
     )?;
     menu.attach(&live.window)?;
@@ -318,6 +328,10 @@ pub fn preview(options: HostOptions) -> Result<()> {
                     apply_overlay(&live, chrome::PICKER_OPEN_SCRIPT);
                 } else if menu::is(&menu_event, menu::SELECT_ALL_ID) {
                     apply_overlay(&live, chrome::SELECT_ALL_SCRIPT);
+                } else if menu::is(&menu_event, menu::CHECK_UPDATES_ID) {
+                    if let Some(updater) = updater.as_ref() {
+                        updater.check_for_updates();
+                    }
                 }
             }
             Event::UserEvent(ShellEvent::Preview(PreviewEvent::Command(command))) => {

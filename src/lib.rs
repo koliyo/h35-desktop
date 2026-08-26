@@ -1,5 +1,6 @@
 //! Native window and webview host for hypermedia-driven desktop apps.
 
+pub mod bundle;
 mod chrome;
 mod dialog;
 mod error;
@@ -11,6 +12,7 @@ mod preview;
 mod source;
 pub mod state;
 mod types;
+pub mod update;
 mod window;
 
 use std::{env, fs, path::PathBuf};
