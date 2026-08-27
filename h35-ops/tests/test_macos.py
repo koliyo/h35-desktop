@@ -112,7 +112,13 @@ def test_generate_appcast_is_flat_stdin_and_silent(monkeypatch, tmp_path: Path, 
     (inbox / "App.zip").write_bytes(b"zip")
     tool = tmp_path / "generate_appcast"
     tool.write_text(
-        "#!/bin/sh\nset -eu\nprintf 'args=%s\\n' \"$*\" > \"$0.out\"\ncat > \"$0.in\"\n",
+        "#!/bin/sh\nset -eu\nprintf 'args=%s\\n' \"$*\" > \"$0.out\"\ncat > \"$0.in\"\n"
+        "out=\"\"\nprev=\"\"\nfor arg in \"$@\"; do\n"
+        "  if [ \"$prev\" = \"-o\" ]; then out=$arg; fi\n"
+        "  prev=$arg\ndone\n"
+        "printf '%s\\n' "
+        "'<enclosure sparkle:edSignature=\"sig\" length=\"1\" type=\"application/octet-stream\"/>' "
+        "> \"$out\"\n",
         encoding="utf-8",
     )
     tool.chmod(0o755)
@@ -127,6 +133,56 @@ def test_generate_appcast_is_flat_stdin_and_silent(monkeypatch, tmp_path: Path, 
     assert "--maximum-deltas 0" in args
     assert "--ed-key-file -" in args
     assert Path(f"{tool}.in").read_text(encoding="utf-8") == secret
+
+
+def test_generate_appcast_fails_without_ed_signature(monkeypatch, tmp_path: Path) -> None:
+    inbox = tmp_path / "inbox"
+    inbox.mkdir()
+    (inbox / "App.zip").write_bytes(b"zip")
+    tool = tmp_path / "generate_appcast"
+    tool.write_text(
+        "#!/bin/sh\nout=\"\"\nprev=\"\"\nfor arg in \"$@\"; do\n"
+        "  if [ \"$prev\" = \"-o\" ]; then out=$arg; fi\n"
+        "  prev=$arg\ndone\n"
+        "printf '%s\\n' '<enclosure url=\"https://example.test/App.zip\"/>' > \"$out\"\n",
+        encoding="utf-8",
+    )
+    tool.chmod(0o755)
+    monkeypatch.setenv("GENERATE_APPCAST", str(tool))
+    monkeypatch.setenv("SPARKLE_EDDSA_PRIVATE_KEY", "unit-test-eddsa-private-key")
+    try:
+        generate_appcast(inbox, "https://example.test/download/v1/")
+    except SystemExit as exc:
+        assert "missing sparkle:edSignature" in str(exc)
+    else:
+        raise AssertionError("expected SystemExit")
+
+
+def test_generate_appcast_fails_on_key_mismatch(monkeypatch, tmp_path: Path) -> None:
+    inbox = tmp_path / "inbox"
+    inbox.mkdir()
+    (inbox / "App.zip").write_bytes(b"zip")
+    tool = tmp_path / "generate_appcast"
+    tool.write_text(
+        "#!/bin/sh\n"
+        "printf '%s\\n' 'Warning: SUPublicEDKey does not match key EdDSA in the Keychain'\n"
+        "out=\"\"\nprev=\"\"\nfor arg in \"$@\"; do\n"
+        "  if [ \"$prev\" = \"-o\" ]; then out=$arg; fi\n"
+        "  prev=$arg\ndone\n"
+        "printf '%s\\n' "
+        "'<enclosure sparkle:edSignature=\"sig\" length=\"1\" type=\"application/octet-stream\"/>' "
+        "> \"$out\"\n",
+        encoding="utf-8",
+    )
+    tool.chmod(0o755)
+    monkeypatch.setenv("GENERATE_APPCAST", str(tool))
+    monkeypatch.setenv("SPARKLE_EDDSA_PRIVATE_KEY", "unit-test-eddsa-private-key")
+    try:
+        generate_appcast(inbox, "https://example.test/download/v1/")
+    except SystemExit as exc:
+        assert "does not match SPARKLE_EDDSA_PRIVATE_KEY" in str(exc)
+    else:
+        raise AssertionError("expected SystemExit")
 
 
 def test_sign_fails_closed_without_secrets(monkeypatch, tmp_path: Path) -> None:

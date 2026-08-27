@@ -275,7 +275,8 @@ def generate_appcast(inbox: Path, prefix: str, *, root: Path | None = None) -> i
     tool = os.environ.get("GENERATE_APPCAST")
     if not tool:
         tool = str(fetch_sparkle(root).parent / "bin" / "generate_appcast")
-    subprocess.run(
+    appcast = inbox / "appcast.xml"
+    result = subprocess.run(
         [
             tool,
             "--maximum-deltas",
@@ -285,13 +286,28 @@ def generate_appcast(inbox: Path, prefix: str, *, root: Path | None = None) -> i
             "--ed-key-file",
             "-",
             "-o",
-            str(inbox / "appcast.xml"),
+            str(appcast),
             str(inbox),
         ],
         input=secret,
         text=True,
         check=True,
+        capture_output=True,
     )
+    if result.stdout:
+        print(result.stdout, end="" if result.stdout.endswith("\n") else "\n")
+    if result.stderr:
+        print(result.stderr, end="" if result.stderr.endswith("\n") else "\n")
+    combined = f"{result.stdout}\n{result.stderr}"
+    if "does not match" in combined:
+        raise SystemExit(
+            "h35-ops appcast: SUPublicEDKey does not match SPARKLE_EDDSA_PRIVATE_KEY"
+        )
+    feed = appcast.read_text(encoding="utf-8") if appcast.is_file() else ""
+    if "sparkle:edSignature=" not in feed:
+        raise SystemExit(
+            "h35-ops appcast: generated appcast is missing sparkle:edSignature"
+        )
     return 0
 
 
