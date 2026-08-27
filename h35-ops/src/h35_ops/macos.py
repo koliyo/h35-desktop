@@ -57,6 +57,15 @@ def missing_secrets() -> list[str]:
     return [name for name in SIGN_SECRETS if not os.environ.get(name)]
 
 
+def sparkle_archive_members(members: list[tarfile.TarInfo]) -> list[tarfile.TarInfo]:
+    selected: list[tarfile.TarInfo] = []
+    for member in members:
+        rel = member.name.lstrip("./")
+        if rel.startswith("Sparkle.framework") or rel.startswith("bin/"):
+            selected.append(member)
+    return selected
+
+
 def fetch_sparkle(root: Path | None = None) -> Path:
     root = root or repo_root()
     version = os.environ.get("SPARKLE_VERSION") or DEFAULT_SPARKLE_VERSION
@@ -72,11 +81,7 @@ def fetch_sparkle(root: Path | None = None) -> Path:
         if not archive.is_file():
             urllib.request.urlretrieve(url, archive)
         with tarfile.open(archive, "r:xz") as tf:
-            members = [
-                member
-                for member in tf.getmembers()
-                if member.name.startswith("Sparkle.framework") or member.name.startswith("bin/")
-            ]
+            members = sparkle_archive_members(tf.getmembers())
             tf.extractall(dest, members=members, filter="data")
     if not framework.is_dir():
         raise SystemExit(f"h35-ops package: Sparkle.framework missing under {dest}")

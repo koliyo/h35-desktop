@@ -13,6 +13,7 @@ from h35_ops.macos import (
     package_command,
     sign_app,
     sign_command,
+    sparkle_archive_members,
 )
 
 
@@ -50,6 +51,27 @@ def test_appcast_usage() -> None:
         assert str(exc) == APPCAST_USAGE
     else:
         raise AssertionError("expected SystemExit")
+
+
+def test_sparkle_archive_members_accepts_dot_slash_prefix() -> None:
+    class Member:
+        def __init__(self, name: str) -> None:
+            self.name = name
+
+    selected = sparkle_archive_members(
+        [
+            Member("./LICENSE"),
+            Member("./bin/generate_appcast"),
+            Member("./Sparkle.framework/Sparkle"),
+            Member("Sparkle.framework/Versions/B/Sparkle"),
+            Member("./sparkle.app/Contents/MacOS/sparkle"),
+        ]
+    )
+    assert [member.name for member in selected] == [
+        "./bin/generate_appcast",
+        "./Sparkle.framework/Sparkle",
+        "Sparkle.framework/Versions/B/Sparkle",
+    ]
 
 
 def test_cargo_version(tmp_path: Path) -> None:
