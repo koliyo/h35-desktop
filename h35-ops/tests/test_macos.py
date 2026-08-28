@@ -106,6 +106,21 @@ def test_assemble_writes_parameterized_plist(monkeypatch, tmp_path: Path) -> Non
     assert (dest / "Contents" / "PkgInfo").read_bytes() == b"APPL????"
 
 
+def test_generate_appcast_rejects_public_key_as_private(monkeypatch, tmp_path: Path) -> None:
+    inbox = tmp_path / "inbox"
+    inbox.mkdir()
+    public = "lSXTvcKDK7P4DEjd+o/k2BM6OPTNGyYdvhIk2DxJyao="
+    monkeypatch.setenv("GENERATE_APPCAST", str(tmp_path / "unused"))
+    monkeypatch.setenv("SPARKLE_EDDSA_PRIVATE_KEY", public)
+    monkeypatch.setenv("SU_PUBLIC_ED_KEY", public)
+    try:
+        generate_appcast(inbox, "https://example.test/download/v1/")
+    except SystemExit as exc:
+        assert "is the public key" in str(exc)
+    else:
+        raise AssertionError("expected SystemExit")
+
+
 def test_generate_appcast_is_flat_stdin_and_silent(monkeypatch, tmp_path: Path, capsys) -> None:
     inbox = tmp_path / "inbox"
     inbox.mkdir()

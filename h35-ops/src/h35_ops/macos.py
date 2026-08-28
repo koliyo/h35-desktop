@@ -268,6 +268,12 @@ def generate_appcast(inbox: Path, prefix: str, *, root: Path | None = None) -> i
     secret = os.environ.get("SPARKLE_EDDSA_PRIVATE_KEY")
     if not secret:
         raise SystemExit("h35-ops appcast: SPARKLE_EDDSA_PRIVATE_KEY is required")
+    public = os.environ.get("SU_PUBLIC_ED_KEY", "").strip()
+    if public and secret.strip() == public:
+        raise SystemExit(
+            "h35-ops appcast: SPARKLE_EDDSA_PRIVATE_KEY is the public key; "
+            "export the private key with generate_keys -x"
+        )
     if not inbox.is_dir():
         raise SystemExit(f"h35-ops appcast: inbox is not a directory: {inbox}")
     if any(child.is_dir() for child in inbox.iterdir()):
