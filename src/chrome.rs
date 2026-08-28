@@ -394,6 +394,8 @@ mod tests {
         assert!(goto_js().contains("aria-label=\"Go to page\""));
         assert!(PREVIEW_FIND_JS.contains("__h35PreviewNav.find"));
         assert!(PREVIEW_FIND_JS.contains("useSelection"));
+        assert!(PREVIEW_FIND_JS.contains("__h35FindRoot"));
+        assert!(PREVIEW_FIND_JS.contains("getComputedStyle"));
         assert!(goto_js().contains("/pages.json"));
         assert!(goto_js().contains("/catalog.json"));
         assert!(goto_js().contains("loadCatalog"));

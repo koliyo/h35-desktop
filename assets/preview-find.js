@@ -50,9 +50,20 @@
 
   const isOpen = () => host.classList.contains("open");
 
+  const isSkippedElement = (el) => {
+    if (SKIP_HOSTS[el.tagName] || SKIP_TAGS[el.tagName] || el.hidden) {
+      return true;
+    }
+    if (el.getAttribute("aria-hidden") === "true") {
+      return true;
+    }
+    const style = window.getComputedStyle(el);
+    return style.display === "none" || style.visibility === "hidden";
+  };
+
   const acceptNode = (node) => {
     if (node.nodeType === 1) {
-      if (SKIP_HOSTS[node.tagName] || SKIP_TAGS[node.tagName]) {
+      if (isSkippedElement(node)) {
         return NodeFilter.FILTER_REJECT;
       }
       return NodeFilter.FILTER_SKIP;
@@ -63,8 +74,19 @@
     return NodeFilter.FILTER_ACCEPT;
   };
 
+  const findRoot = () => {
+    const sel = window.__h35FindRoot;
+    if (typeof sel === "string" && sel) {
+      const scoped = document.querySelector(sel);
+      if (scoped) {
+        return scoped;
+      }
+    }
+    return document.body || document.documentElement;
+  };
+
   const textNodes = () => {
-    const root = document.body || document.documentElement;
+    const root = findRoot();
     if (!root) {
       return [];
     }
