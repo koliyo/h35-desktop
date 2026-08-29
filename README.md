@@ -15,6 +15,7 @@ The crate owns the preview window and toolbar chrome. The page origin owns docum
 ## Responsibilities
 
 - **Window lifecycle**: Spawns the desktop window, runs the Tao event loop, and coordinates IPC between the host and webview.
+- **External links**: `http`/`https` URLs that are not loopback, plus `mailto` and `tel`, open in the system default browser instead of the webview. Loopback preview origins stay in-window.
 - **Preview chrome**: Overlay HTML/JS plus optional extra initialization scripts and host IPC (`HostOptions.on_ipc`) so a long-lived window can `load_url` a new origin without leaving `preview()`. Cmd-P is an optional **Open Target** picker; Cmd-K is Go to File when `goto` is on.
 - **Window state persistence**: Restores and saves window size, position, and sidebar column widths in `{state_dir}/windows.json`, keyed by `identifier`. `HostOptions.home_url` can keep toolbar Home on a dashboard while the first load is another route. `on_navigate` reports committed page-load URLs.
 - **Host icon**: Optional `HostOptions.icon_png` applied as the window icon and, on macOS, the Dock image.

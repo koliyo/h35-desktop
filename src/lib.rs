@@ -5,6 +5,7 @@ mod chrome;
 mod dialog;
 mod error;
 mod events;
+mod external;
 mod history;
 mod icon;
 mod menu;

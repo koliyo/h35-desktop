@@ -4,7 +4,7 @@ use tao::{
     event_loop::EventLoopWindowTarget,
     window::{Window, WindowBuilder},
 };
-use wry::{PageLoadEvent, WebContext, WebView, WebViewBuilder, http::Request};
+use wry::{NewWindowResponse, PageLoadEvent, WebContext, WebView, WebViewBuilder, http::Request};
 
 #[cfg(target_os = "macos")]
 const UNIFIED_CHROME_HEIGHT: f64 = 52.0;
@@ -77,7 +77,14 @@ impl LiveWindow {
 
         let mut webview_builder = WebViewBuilder::new_with_web_context(&mut context)
             .with_url(&url)
-            .with_devtools(devtools);
+            .with_devtools(devtools)
+            .with_navigation_handler(|target| crate::external::allow_webview_navigation(&target))
+            .with_new_window_req_handler(|target, _features| {
+                if crate::external::should_open_externally(&target) {
+                    crate::external::open_system_url(&target);
+                }
+                NewWindowResponse::Deny
+            });
         if let Some(script) = hooks.initialization_script {
             webview_builder = webview_builder.with_initialization_script(script);
         }
