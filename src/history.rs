@@ -215,6 +215,8 @@ pub fn display_path(url: &str) -> String {
     let path = path.trim_end_matches('/');
     if path.is_empty() {
         format!("/{suffix}")
+    } else if let Some(rest) = path.strip_prefix("/@") {
+        format!("@{rest}{suffix}")
     } else {
         format!("{path}{suffix}")
     }
@@ -421,6 +423,10 @@ mod tests {
         assert_eq!(
             display_path("http://127.0.0.1:8000/guides/docs/?q=1"),
             "/guides/docs?q=1"
+        );
+        assert_eq!(
+            display_path("http://127.0.0.1:8000/@okmate/plans/nested/"),
+            "@okmate/plans/nested"
         );
     }
 }
