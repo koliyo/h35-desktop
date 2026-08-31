@@ -231,6 +231,7 @@ mod tests {
         assert!(PREVIEW_NAV_JS.contains("h35-dev-tab"));
         assert!(PREVIEW_NAV_JS.contains("addEventListener(\"message\""));
         assert!(PREVIEW_NAV_JS.contains("h35-inspector"));
+        assert!(PREVIEW_NAV_JS.contains("rocci-inspector"));
         assert!(PREVIEW_NAV_JS.contains("tuplesEqual"));
         assert!(!PREVIEW_NAV_JS.contains("frame.src !== next"));
         assert!(PREVIEW_NAV_JS.contains("width: var(--h35-chrome-right, 28rem)"));

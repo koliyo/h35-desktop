@@ -502,7 +502,7 @@
         return;
       }
       const data = event.data;
-      if (!data || data.type !== "h35-inspector") {
+      if (!data || (data.type !== "h35-inspector" && data.type !== "rocci-inspector")) {
         return;
       }
       receivedInspectorMessage = true;
