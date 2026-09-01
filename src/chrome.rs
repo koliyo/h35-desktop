@@ -3,9 +3,7 @@ const PREVIEW_NAV_CSS: &str = include_str!("../assets/preview-nav.css");
 const PREVIEW_FIND_HTML: &str = include_str!("../assets/preview-find.html");
 const PREVIEW_FIND_CSS: &str = include_str!("../assets/preview-find.css");
 const PREVIEW_FIND_JS: &str = include_str!("../assets/preview-find.js");
-fn goto_js() -> String {
-    include_str!("../assets/goto.js").to_string()
-}
+const GOTO_JS: &str = include_str!("../assets/goto.js");
 const PREVIEW_GOTO_JS: &str = include_str!("../assets/preview-goto.js");
 const PREVIEW_KEYS_JS: &str = include_str!("../assets/preview-keys.js");
 const REDUCED_MOTION_JS: &str = include_str!("../assets/reduced-motion.js");
@@ -87,7 +85,7 @@ pub fn initialization_script(
     } else {
         "try{if(sessionStorage.getItem(\"h35-live-reload\")===null)sessionStorage.setItem(\"h35-live-reload\",\"0\")}catch(e){}\n".to_string()
     };
-    let goto_js = if goto { goto_js() } else { String::new() };
+    let goto_js = if goto { GOTO_JS } else { "" };
     let find_js = if find { PREVIEW_FIND_JS } else { "" };
     let goto_alias = if goto { PREVIEW_GOTO_JS } else { "" };
     format!(
@@ -124,20 +122,7 @@ pub fn update_title_script(title: &str) -> String {
 }
 
 fn json_string(value: &str) -> String {
-    let mut out = String::from("\"");
-    for ch in value.chars() {
-        match ch {
-            '"' => out.push_str("\\\""),
-            '\\' => out.push_str("\\\\"),
-            '\n' => out.push_str("\\n"),
-            '\r' => out.push_str("\\r"),
-            '\t' => out.push_str("\\t"),
-            ch if ch.is_control() => out.push_str(&format!("\\u{:04x}", ch as u32)),
-            ch => out.push(ch),
-        }
-    }
-    out.push('"');
-    out
+    serde_json::to_string(value).unwrap_or_else(|_| "\"\"".into())
 }
 
 #[cfg(test)]
@@ -232,6 +217,14 @@ mod tests {
         assert!(PREVIEW_NAV_JS.contains("addEventListener(\"message\""));
         assert!(PREVIEW_NAV_JS.contains("h35-inspector"));
         assert!(PREVIEW_NAV_JS.contains("rocci-inspector"));
+        assert!(PREVIEW_NAV_JS.contains("h35-inspector-prefs"));
+        assert!(PREVIEW_NAV_JS.contains("sessionStorage.setItem(PREFS_KEY"));
+        assert!(PREVIEW_NAV_JS.contains("sessionStorage.getItem(PREFS_KEY)"));
+        assert!(
+            PREVIEW_NAV_JS.contains("const documentRoute = () => routeOf(window.location.href)")
+        );
+        assert!(PREVIEW_NAV_JS.contains("syncDocumentFrame"));
+        assert!(!PREVIEW_NAV_JS.contains("syncFrame(routeOf(next.path))"));
         assert!(PREVIEW_NAV_JS.contains("tuplesEqual"));
         assert!(!PREVIEW_NAV_JS.contains("frame.src !== next"));
         assert!(PREVIEW_NAV_JS.contains("width: var(--h35-chrome-right, 28rem)"));
@@ -392,15 +385,15 @@ mod tests {
         assert!(script.contains("window.__h35PreviewNav.goto"));
         assert!(PREVIEW_FIND_HTML.contains("id=\"query\""));
         assert!(PREVIEW_FIND_HTML.contains("aria-label=\"Find in page\""));
-        assert!(goto_js().contains("aria-label=\"Go to page\""));
+        assert!(GOTO_JS.contains("aria-label=\"Go to page\""));
         assert!(PREVIEW_FIND_JS.contains("__h35PreviewNav.find"));
         assert!(PREVIEW_FIND_JS.contains("useSelection"));
         assert!(PREVIEW_FIND_JS.contains("__h35FindRoot"));
         assert!(PREVIEW_FIND_JS.contains("getComputedStyle"));
-        assert!(goto_js().contains("/pages.json"));
-        assert!(goto_js().contains("/catalog.json"));
-        assert!(goto_js().contains("loadCatalog"));
-        assert!(goto_js().contains("history.pushState"));
+        assert!(GOTO_JS.contains("/pages.json"));
+        assert!(GOTO_JS.contains("/catalog.json"));
+        assert!(GOTO_JS.contains("loadCatalog"));
+        assert!(GOTO_JS.contains("history.pushState"));
         assert!(PREVIEW_GOTO_JS.contains("__h35Goto"));
         assert!(PREVIEW_KEYS_JS.contains("closeMore"));
         assert!(PREVIEW_KEYS_JS.contains("preventDefault"));
@@ -443,6 +436,9 @@ mod tests {
         assert!(readme.contains("right (default"));
         assert!(readme.contains("bottom"));
         assert!(readme.contains("inspector.json"));
+        assert!(readme.contains("h35-inspector-prefs"));
+        assert!(readme.contains("in-window source of truth"));
+        assert!(readme.contains("app-global"));
         assert!(readme.contains("sidebar column widths"));
         assert!(readme.contains("Open as page"));
         assert!(readme.contains("Web Inspector"));

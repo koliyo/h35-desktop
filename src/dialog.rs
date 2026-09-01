@@ -27,7 +27,7 @@ pub fn start_pick_folder(proxy: EventLoopProxy<ShellEvent>) {
         };
         let picked = runtime.block_on(async {
             rfd::AsyncFileDialog::new()
-                .set_title("Choose knowledge folder")
+                .set_title("Choose Folder")
                 .pick_folder()
                 .await
         });

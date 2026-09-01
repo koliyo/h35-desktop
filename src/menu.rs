@@ -8,7 +8,7 @@ use muda::{
 use tao::event_loop::EventLoopProxy;
 use tao::window::Window;
 
-use crate::ShellEvent;
+use crate::events::ShellEvent;
 
 pub const QUIT_ID: &str = "app.quit";
 pub const CHECK_UPDATES_ID: &str = "app.check-updates";
@@ -71,51 +71,35 @@ impl NativeMenu {
                     ..Default::default()
                 }),
             );
-            if config.check_updates {
-                let check_updates = MenuItem::with_id(
-                    CHECK_UPDATES_ID,
-                    "Check for Updates…",
-                    config.check_updates_enabled,
-                    None,
-                );
-                app.append_items(&[
-                    &about,
-                    &PredefinedMenuItem::separator(),
-                    &check_updates,
-                    &PredefinedMenuItem::separator(),
-                    &PredefinedMenuItem::services(None),
-                    &PredefinedMenuItem::separator(),
-                    &PredefinedMenuItem::hide(Some(&format!("Hide {}", config.app_name))),
-                    &PredefinedMenuItem::hide_others(None),
-                    &PredefinedMenuItem::show_all(None),
-                    &PredefinedMenuItem::separator(),
-                    &MenuItem::with_id(
-                        QUIT_ID,
-                        format!("Quit {}", config.app_name),
-                        true,
-                        Some(Accelerator::new(Some(CMD_OR_CTRL), Code::KeyQ)),
-                    ),
-                ])
+            app.append_items(&[&about, &PredefinedMenuItem::separator()])
                 .map_err(menu_error)?;
-            } else {
+            if config.check_updates {
                 app.append_items(&[
-                    &about,
-                    &PredefinedMenuItem::separator(),
-                    &PredefinedMenuItem::services(None),
-                    &PredefinedMenuItem::separator(),
-                    &PredefinedMenuItem::hide(Some(&format!("Hide {}", config.app_name))),
-                    &PredefinedMenuItem::hide_others(None),
-                    &PredefinedMenuItem::show_all(None),
-                    &PredefinedMenuItem::separator(),
                     &MenuItem::with_id(
-                        QUIT_ID,
-                        format!("Quit {}", config.app_name),
-                        true,
-                        Some(Accelerator::new(Some(CMD_OR_CTRL), Code::KeyQ)),
+                        CHECK_UPDATES_ID,
+                        "Check for Updates…",
+                        config.check_updates_enabled,
+                        None,
                     ),
+                    &PredefinedMenuItem::separator(),
                 ])
                 .map_err(menu_error)?;
             }
+            app.append_items(&[
+                &PredefinedMenuItem::services(None),
+                &PredefinedMenuItem::separator(),
+                &PredefinedMenuItem::hide(Some(&format!("Hide {}", config.app_name))),
+                &PredefinedMenuItem::hide_others(None),
+                &PredefinedMenuItem::show_all(None),
+                &PredefinedMenuItem::separator(),
+                &MenuItem::with_id(
+                    QUIT_ID,
+                    format!("Quit {}", config.app_name),
+                    true,
+                    Some(Accelerator::new(Some(CMD_OR_CTRL), Code::KeyQ)),
+                ),
+            ])
+            .map_err(menu_error)?;
             menu.append(&app).map_err(menu_error)?;
         }
 

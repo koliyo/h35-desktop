@@ -1,15 +1,12 @@
-use crate::WindowEvent;
 use tao::{
-    dpi::PhysicalSize,
     event::{ElementState, KeyEvent},
     keyboard::{KeyCode, ModifiersState},
 };
 
-use crate::history::NavCommand;
+use crate::history::{IpcMessage, NavCommand};
 
 #[derive(Debug)]
 pub enum ShellEvent {
-    NewWindow,
     Menu(muda::MenuEvent),
     Preview(PreviewEvent),
 }
@@ -42,19 +39,21 @@ pub trait PreviewSink: Send + Sync {
     fn send(&self, event: PreviewEvent);
 }
 
-#[cfg_attr(not(test), allow(dead_code))]
-pub fn map_window_event(event: &tao::event::WindowEvent) -> Option<WindowEvent> {
-    match event {
-        tao::event::WindowEvent::CloseRequested => Some(WindowEvent::CloseRequested),
-        tao::event::WindowEvent::Destroyed => Some(WindowEvent::Destroyed),
-        tao::event::WindowEvent::Focused(focused) => Some(WindowEvent::Focused(*focused)),
-        tao::event::WindowEvent::Resized(PhysicalSize { width, height }) => {
-            Some(WindowEvent::Resized {
-                width: *width,
-                height: *height,
-            })
+impl From<IpcMessage> for PreviewEvent {
+    fn from(message: IpcMessage) -> Self {
+        match message {
+            IpcMessage::Nav(command) => Self::Command(command),
+            IpcMessage::Reveal(path) => Self::Reveal(path),
+            IpcMessage::CopySource(path) => Self::CopySource(path),
+            IpcMessage::LiveReload(enabled) => Self::LiveReload(enabled),
+            IpcMessage::Devtools(open) => Self::Devtools(open),
+            IpcMessage::InspectorPrefs(json) => Self::InspectorPrefs(json),
+            IpcMessage::Layout(json) => Self::Layout(json),
+            IpcMessage::Location(url) => Self::Location(url),
+            IpcMessage::Drag => Self::Drag,
+            IpcMessage::Zoom => Self::Zoom,
+            IpcMessage::PickFolder => Self::PickFolder,
         }
-        _ => None,
     }
 }
 
@@ -88,18 +87,6 @@ fn close_modifier(modifiers: ModifiersState) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn maps_close_and_focus_events() {
-        assert_eq!(
-            map_window_event(&tao::event::WindowEvent::CloseRequested),
-            Some(WindowEvent::CloseRequested)
-        );
-        assert_eq!(
-            map_window_event(&tao::event::WindowEvent::Focused(true)),
-            Some(WindowEvent::Focused(true))
-        );
-    }
 
     #[test]
     fn close_shortcut_uses_platform_modifier() {

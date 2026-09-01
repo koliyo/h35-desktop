@@ -93,11 +93,6 @@ impl NavHistory {
         }
     }
 
-    pub fn with_start_and_home(start: impl Into<String>, home: impl Into<String>) -> Self {
-        let _ = start;
-        Self::new(home)
-    }
-
     pub fn home(&self) -> &str {
         &self.home
     }
@@ -200,6 +195,28 @@ impl NavHistory {
 
 pub fn normalize_url(url: &str) -> String {
     url.trim().trim_end_matches('#').to_string()
+}
+
+pub fn is_inspector_document(url: &str, inspector_url: Option<&str>) -> bool {
+    let Some(inspector) = inspector_url.filter(|value| !value.is_empty()) else {
+        return false;
+    };
+    match (inspector_origin_path(url), inspector_origin_path(inspector)) {
+        (Some(page), Some(insp)) => page == insp,
+        _ => false,
+    }
+}
+
+fn inspector_origin_path(url: &str) -> Option<(String, String)> {
+    let rest = url.split_once("://").map(|(_, rest)| rest)?;
+    let slash = rest.find('/')?;
+    let origin = url.get(..url.len() - rest.len() + slash)?.to_string();
+    let after_host = &rest[slash..];
+    let path = match after_host.find(['?', '#']) {
+        Some(index) => &after_host[..index],
+        None => after_host,
+    };
+    Some((origin, path.to_string()))
 }
 
 pub fn display_path(url: &str) -> String {
@@ -375,7 +392,7 @@ mod tests {
 
     #[test]
     fn start_url_can_differ_from_home() {
-        let mut history = NavHistory::with_start_and_home(INTERACTIVE, ABOUT);
+        let mut history = NavHistory::new(ABOUT);
         history.commit(INTERACTIVE);
         assert_eq!(history.home(), ABOUT);
         history.request_home();
@@ -428,5 +445,30 @@ mod tests {
             display_path("http://127.0.0.1:8000/@okmate/plans/nested/"),
             "@okmate/plans/nested"
         );
+    }
+
+    #[test]
+    fn inspector_document_matches_origin_and_path() {
+        let inspector = Some("http://127.0.0.1:8000/__rocci/dev");
+        assert!(is_inspector_document(
+            "http://127.0.0.1:8000/__rocci/dev?tab=source&route=/",
+            inspector
+        ));
+        assert!(is_inspector_document(
+            "http://127.0.0.1:8000/__rocci/dev",
+            inspector
+        ));
+        assert!(!is_inspector_document(
+            "http://127.0.0.1:8000/guides/docs/",
+            inspector
+        ));
+        assert!(!is_inspector_document(
+            "http://127.0.0.1:8000/__rocdown/dev",
+            inspector
+        ));
+        assert!(!is_inspector_document(
+            "http://127.0.0.1:8000/__rocci/dev",
+            None
+        ));
     }
 }

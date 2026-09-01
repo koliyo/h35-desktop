@@ -1,21 +1,10 @@
 use std::io::Cursor;
-use std::sync::OnceLock;
-
-static ICON_PNG: OnceLock<Option<&'static [u8]>> = OnceLock::new();
 
 #[derive(Debug)]
 pub(crate) struct RgbaIcon {
     pub rgba: Vec<u8>,
     pub width: u32,
     pub height: u32,
-}
-
-pub(crate) fn set_icon_png(bytes: Option<&'static [u8]>) {
-    let _ = ICON_PNG.set(bytes);
-}
-
-fn icon_png() -> Option<&'static [u8]> {
-    ICON_PNG.get().copied().flatten()
 }
 
 pub(crate) fn decode_rgba(bytes: &[u8]) -> Result<RgbaIcon, String> {
@@ -52,8 +41,8 @@ pub(crate) fn decode_rgba(bytes: &[u8]) -> Result<RgbaIcon, String> {
     })
 }
 
-pub(crate) fn window_icon() -> Option<tao::window::Icon> {
-    let bytes = icon_png()?;
+pub(crate) fn window_icon(bytes: Option<&[u8]>) -> Option<tao::window::Icon> {
+    let bytes = bytes?;
     match decode_rgba(bytes) {
         Ok(icon) => match tao::window::Icon::from_rgba(icon.rgba, icon.width, icon.height) {
             Ok(icon) => Some(icon),
@@ -69,18 +58,18 @@ pub(crate) fn window_icon() -> Option<tao::window::Icon> {
     }
 }
 
-pub(crate) fn apply_host_icon() {
+pub(crate) fn apply_host_icon(bytes: Option<&[u8]>) {
     #[cfg(target_os = "macos")]
-    apply_macos_dock_icon();
+    apply_macos_dock_icon(bytes);
 }
 
 #[cfg(target_os = "macos")]
-fn apply_macos_dock_icon() {
+fn apply_macos_dock_icon(bytes: Option<&[u8]>) {
     use objc2::{AllocAnyThread, MainThreadMarker};
     use objc2_app_kit::{NSApplication, NSImage};
     use objc2_foundation::NSData;
 
-    let Some(bytes) = icon_png() else {
+    let Some(bytes) = bytes else {
         return;
     };
     let Some(mtm) = MainThreadMarker::new() else {

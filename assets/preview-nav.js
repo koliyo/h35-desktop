@@ -5,6 +5,7 @@
   const UNIFIED = __H35_UNIFIED_TITLEBAR__ === true;
   const HEIGHT = UNIFIED ? "52px" : "48px";
   const LIVE_RELOAD_KEY = "h35-live-reload";
+  const PREFS_KEY = "h35-inspector-prefs";
   const LEGACY_PANEL_KEY = "h35-dev-panel";
   const LEGACY_VIEW_KEY = "h35-dev-view";
   const LEGACY_TAB_KEY = "h35-dev-tab";
@@ -101,6 +102,14 @@
     }
     return true;
   };
+  const prefsPayload = () => ({
+    open: prefs.open,
+    dock: prefs.dock,
+    right: prefs.right,
+    bottom: prefs.bottom,
+    tab: prefs.tab,
+    view: prefs.view,
+  });
   if (!applyPrefSeed(typeof __H35_INSPECTOR_PREFS__ === "undefined" ? null : __H35_INSPECTOR_PREFS__)) {
     const legacyOpen = legacyGet(LEGACY_PANEL_KEY);
     const legacyDock = legacyGet(LEGACY_DOCK_KEY);
@@ -126,31 +135,18 @@
         LEGACY_DOCK_KEY,
         LEGACY_DOCK_SIZE_KEY,
       ].forEach(legacyClear);
-      send(
-        "inspector-prefs:" +
-          JSON.stringify({
-            open: prefs.open,
-            dock: prefs.dock,
-            right: prefs.right,
-            bottom: prefs.bottom,
-            tab: prefs.tab,
-            view: prefs.view,
-          })
-      );
+      send("inspector-prefs:" + JSON.stringify(prefsPayload()));
     }
   }
+  try {
+    applyPrefSeed(JSON.parse(sessionStorage.getItem(PREFS_KEY)));
+  } catch (err) {}
   const persistPrefs = () => {
-    send(
-      "inspector-prefs:" +
-        JSON.stringify({
-          open: prefs.open,
-          dock: prefs.dock,
-          right: prefs.right,
-          bottom: prefs.bottom,
-          tab: prefs.tab,
-          view: prefs.view,
-        })
-    );
+    const payload = prefsPayload();
+    try {
+      sessionStorage.setItem(PREFS_KEY, JSON.stringify(payload));
+    } catch (err) {}
+    send("inspector-prefs:" + JSON.stringify(payload));
   };
   back.addEventListener("click", () => send("back"));
   forward.addEventListener("click", () => send("forward"));
@@ -366,6 +362,16 @@
     }
     assignFrame(next, true);
   };
+  let lastDocumentRoute = null;
+  const documentRoute = () => routeOf(window.location.href);
+  const syncDocumentFrame = (force) => {
+    const route = documentRoute();
+    if (!force && lastDocumentRoute === route) {
+      return;
+    }
+    lastDocumentRoute = route;
+    syncFrame(route);
+  };
   const setNativeMode = (on) => {
     if (!panel) {
       return;
@@ -388,7 +394,7 @@
       send("devtools:1");
     } else {
       send("devtools:0");
-      syncFrame(routeOf(window.location.href));
+      syncDocumentFrame(true);
     }
     applyDock();
   };
@@ -410,7 +416,7 @@
         setNativeMode(false);
       } else {
         send("devtools:0");
-        syncFrame(routeOf(window.location.href));
+        syncDocumentFrame(true);
       }
     }
   };
@@ -521,7 +527,8 @@
         };
       }
     });
-    assignFrame(inspectorTuple(routeOf(window.location.href)), true);
+    lastDocumentRoute = documentRoute();
+    assignFrame(inspectorTuple(lastDocumentRoute), true);
     panel.append(docks, splitter, frame);
     dev.addEventListener("click", () => {
       if (panel.classList.contains("native")) {
@@ -610,7 +617,7 @@
         dev.hidden = !inspectorUrl || onInspectorPage();
       }
       if (inspectorUrl && panel && panel.classList.contains("open") && !onInspectorPage()) {
-        syncFrame(routeOf(window.location.href));
+        syncDocumentFrame(true);
       }
     },
     update(next) {
@@ -620,7 +627,7 @@
       if (typeof next.path === "string") {
         path.textContent = next.path;
         if (panel && panel.classList.contains("open") && !onInspectorPage()) {
-          syncFrame(routeOf(next.path));
+          syncDocumentFrame(false);
         }
       }
       if (typeof next.canBack === "boolean") {

@@ -21,6 +21,19 @@ pub struct WebViewHooks {
     pub on_title_changed: Option<Box<dyn Fn(String) + 'static>>,
 }
 
+pub struct WindowCreate {
+    pub template: WindowConfig,
+    pub id: WindowId,
+    pub url: String,
+    pub context: WebContext,
+    pub devtools: bool,
+    pub hooks: WebViewHooks,
+    pub position: Option<LogicalPosition<f64>>,
+    pub maximized: bool,
+    pub unified_titlebar: bool,
+    pub icon_png: Option<&'static [u8]>,
+}
+
 pub struct LiveWindow {
     pub window: Window,
     pub webview: WebView,
@@ -31,23 +44,26 @@ pub struct LiveWindow {
 }
 
 impl LiveWindow {
-    #[allow(clippy::too_many_arguments)]
     pub fn create<T: 'static>(
         event_loop: &EventLoopWindowTarget<T>,
-        template: &WindowConfig,
-        id: WindowId,
-        url: String,
-        mut context: WebContext,
-        devtools: bool,
-        hooks: WebViewHooks,
-        position: Option<LogicalPosition<f64>>,
-        maximized: bool,
-        unified_titlebar: bool,
+        create: WindowCreate,
     ) -> Result<Self> {
+        let WindowCreate {
+            template,
+            id,
+            url,
+            mut context,
+            devtools,
+            hooks,
+            position,
+            maximized,
+            unified_titlebar,
+            icon_png,
+        } = create;
         let mut builder = WindowBuilder::new()
             .with_title(&template.title)
             .with_inner_size(LogicalSize::new(template.width, template.height))
-            .with_window_icon(crate::icon::window_icon());
+            .with_window_icon(crate::icon::window_icon(icon_png));
         if let (Some(min_width), Some(min_height)) = (template.min_width, template.min_height) {
             builder = builder.with_min_inner_size(LogicalSize::new(min_width, min_height));
         }
@@ -118,7 +134,7 @@ impl LiveWindow {
             .build(&window)
             .map_err(|error| Error::message(format!("failed to create webview {id}: {error}")))?;
 
-        apply_geometry(&window, template, position, maximized);
+        apply_geometry(&window, &template, position, maximized);
 
         let live = Self {
             window,

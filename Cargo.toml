@@ -17,7 +17,7 @@ thiserror = "2.0"
 tokio = { version = "1.47", features = ["macros", "net", "rt-multi-thread", "sync", "time"] }
 tracing = "0.1"
 url = "2.5"
-uuid = { version = "1.18", features = ["v4", "js"] }
+uuid = { version = "1.18", features = ["v4"] }
 wry = { version = "0.56", features = ["devtools"] }
 rfd = "0.15"
 
