@@ -143,6 +143,12 @@ impl NavHistory {
         self.intent = Intent::Home;
     }
 
+    pub fn reset_keeping_home(&mut self) {
+        let home = self.home.clone();
+        *self = Self::new(home);
+        self.intent = Intent::Home;
+    }
+
     pub fn commit(&mut self, url: &str) {
         let url = normalize_url(url);
         if url.is_empty() || url == "about:blank" {
@@ -355,6 +361,34 @@ mod tests {
         assert!(!history.can_forward());
         assert_eq!(history.home(), ABOUT);
         assert_eq!(history.current(), Some(ABOUT));
+    }
+
+    #[test]
+    fn reset_keeping_home_preserves_home() {
+        let mut history = NavHistory::new(GUIDE);
+        history.commit(GUIDE);
+        history.commit(INTERACTIVE);
+        history.reset_keeping_home();
+        history.commit(ABOUT);
+        assert!(!history.can_back());
+        assert!(!history.can_forward());
+        assert_eq!(history.home(), GUIDE);
+        assert_eq!(history.current(), Some(ABOUT));
+    }
+
+    #[test]
+    fn with_start_and_home_navigate_keeps_dashboard() {
+        let mut history = NavHistory::with_start_and_home(GUIDE, ABOUT);
+        history.commit(GUIDE);
+        history.reset_keeping_home();
+        history.commit(INTERACTIVE);
+        assert_eq!(history.home(), ABOUT);
+        assert!(!history.can_back());
+        assert_eq!(history.current(), Some(INTERACTIVE));
+        history.request_home();
+        history.commit(ABOUT);
+        assert_eq!(history.current(), Some(ABOUT));
+        assert!(!history.can_back());
     }
 
     #[test]

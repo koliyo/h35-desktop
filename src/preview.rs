@@ -241,7 +241,8 @@ pub fn preview(options: HostOptions) -> Result<()> {
     )?;
     menu.attach(&live.window)?;
 
-    let mut history = match &options.home_url {
+    let dashboard_home = options.home_url.clone();
+    let mut history = match &dashboard_home {
         Some(home) => NavHistory::with_start_and_home(&options.url, home),
         None => NavHistory::new(options.url.clone()),
     };
@@ -407,7 +408,11 @@ pub fn preview(options: HostOptions) -> Result<()> {
                 title: next_title,
                 inspector_url,
             })) => {
-                history.reset_origin(&url);
+                if dashboard_home.is_some() {
+                    history.reset_keeping_home();
+                } else {
+                    history.reset_origin(&url);
+                }
                 if let Err(error) = live.webview.load_url(&url) {
                     tracing::error!(%error, "failed to load preview origin");
                 }
@@ -415,6 +420,8 @@ pub fn preview(options: HostOptions) -> Result<()> {
                 title = next_title;
                 if let Some(inspector) = inspector_url {
                     apply_overlay(&live, &chrome::set_inspector_script(&inspector));
+                } else {
+                    apply_overlay(&live, chrome::clear_inspector_script());
                 }
             }
             Event::UserEvent(ShellEvent::Preview(PreviewEvent::Evaluate(script))) => {

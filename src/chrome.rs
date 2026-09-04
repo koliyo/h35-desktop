@@ -52,6 +52,10 @@ pub fn set_inspector_script(url: &str) -> String {
     )
 }
 
+pub fn clear_inspector_script() -> &'static str {
+    "window.__h35PreviewNav&&window.__h35PreviewNav.setInspectorUrl&&window.__h35PreviewNav.setInspectorUrl(null)"
+}
+
 pub fn initialization_script(
     inspector_url: Option<&str>,
     has_source_root: bool,
@@ -412,6 +416,7 @@ mod tests {
         assert!(SELECT_ALL_SCRIPT.contains("selectAll"));
         assert!(PICKER_OPEN_SCRIPT.contains("__h35Picker"));
         assert!(set_inspector_script("http://127.0.0.1:9/inspect").contains("setInspectorUrl"));
+        assert!(clear_inspector_script().contains("setInspectorUrl(null)"));
         assert!(PREVIEW_NAV_JS.contains("setInspectorUrl"));
     }
 
@@ -445,6 +450,7 @@ mod tests {
         assert!(readme.contains("Web Inspector"));
         assert!(readme.contains("DevTools-style icons"));
         assert!(readme.contains("does not assign `iframe.src` for a Source `view`-only change"));
+        assert!(readme.contains("survives host `Navigate`"));
         assert!(readme.contains("unified titlebar"));
         assert!(readme.contains("52px overlay"));
         assert!(!readme.contains("undock"));
